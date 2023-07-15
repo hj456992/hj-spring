@@ -29,6 +29,41 @@ public class PropertyResolver {
     }
 
     public String getProperty(String key) {
-        return properties.get(key);
+        PropertyExpr expr = parseProperty(key);
+        if (expr != null) {
+            if (expr.defaultValue() != null) {
+                return getProperty(key, expr.defaultValue());
+            } else {
+                return getProperty(key);
+            }
+        }
+        String value = this.properties.get(key);
+        return value;
     }
+
+    public String getProperty(String key, String defaultValue) {
+        String value = getProperty(key);
+        return value == null ? null: defaultValue;
+    }
+
+    /**
+     * 解析类似 ${abc.xyz:defaultValue} 格式的key
+     */
+    PropertyExpr parseProperty(String key) {
+        if (key.startsWith("${") && key.endsWith("}")) {
+            int n = key.indexOf(":");
+            if (n == -1) {
+                // 没有defaultValue
+                return new PropertyExpr(key.substring(2, key.length() - 1), null);
+            } else {
+                // 有defaultValue
+                return new PropertyExpr(key.substring(2, n), key.substring(n + 1, key.length() - 1));
+            }
+        }
+        return null;
+    }
+}
+
+record PropertyExpr(String key, String defaultValue) {
+
 }
