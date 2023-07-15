@@ -1,9 +1,11 @@
 package org.example;
 
+import java.time.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Spring的注入分为@Autowired和@Value两种。对于@Autowired，涉及到Bean的依赖，而对于@Value，则仅仅是将对应的配置注入，不涉及Bean的依赖，相对比较简单。
@@ -16,7 +18,8 @@ import java.util.Set;
  */
 public class PropertyResolver {
 
-    Map<String, String> properties = new HashMap<String, String>();
+    Map<String, String> properties = new HashMap<>();
+    Map<Class<?>, Function<String, Object>> converters = new HashMap<>();
 
     public PropertyResolver(Properties props) {
         // 存入环境变量
@@ -26,7 +29,50 @@ public class PropertyResolver {
         for (String name : names) {
             properties.put(name, props.getProperty(name));
         }
+        // 存入类型转换映射关系
+        converters.put(String.class, s -> s);
+        converters.put(boolean.class, Boolean::parseBoolean);
+        converters.put(Boolean.class, Boolean::valueOf);
+
+        converters.put(byte.class, Byte::parseByte);
+        converters.put(Byte.class, Byte::valueOf);
+
+        converters.put(short.class, Short::parseShort);
+        converters.put(Short.class, Short::valueOf);
+
+        converters.put(int.class, Integer::parseInt);
+        converters.put(Integer.class, Integer::valueOf);
+
+        converters.put(long.class, Long::parseLong);
+        converters.put(Long.class, Long::valueOf);
+
+        converters.put(float.class, Float::parseFloat);
+        converters.put(Float.class, Float::valueOf);
+
+        converters.put(double.class, Double::parseDouble);
+        converters.put(Double.class, Double::valueOf);
+
+        converters.put(LocalDate.class, LocalDate::parse);
+        converters.put(LocalTime.class, LocalTime::parse);
+        converters.put(LocalDateTime.class, LocalDateTime::parse);
+        converters.put(ZonedDateTime.class, ZonedDateTime::parse);
+        converters.put(Duration.class, Duration::parse);
+        converters.put(ZoneId.class, ZoneId::of);
     }
+
+    public <T> T getProperty(String key, Class<T> targetType) {
+        String value = getProperty(key);
+        return value == null ? null : convert(value, targetType);
+    }
+
+    public <T> T convert(String value, Class<?> clazz) {
+        Function<String, Object> fn = this.converters.get(clazz);
+        if (fn == null) {
+            throw new UnsupportedOperationException("Unsupported value type" + clazz.getName());
+        }
+        return (T)this.converters.get(clazz).apply(value);
+    }
+
 
     public String getProperty(String key) {
         PropertyExpr expr = parseProperty(key);
