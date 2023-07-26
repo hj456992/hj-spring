@@ -1,6 +1,8 @@
 package org.example.context;
 
 import jakarta.annotation.Nullable;
+import org.example.annotation.Configuration;
+import org.example.utils.ClassUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -16,7 +18,7 @@ public class BeanDefinition {
      * 但是对于工厂方法创建的bean，其声明类型不一定是Class本身，实际类型可能是声明类型的子类。
      * 因此，获取实际类型，使用instance.getClass()进行获取。
      */
-    private final Class<?> clazz;
+    private final Class<?> beanClass;
 
     // bean的实例
     private Object instance = null;
@@ -61,10 +63,10 @@ public class BeanDefinition {
      * 对于使用@Componet注解的bean，需要获取class类型和构造方法来创建bean，同时需要收集@PostConstruct和@PreDestroy标注的
      * 初始化和销毁方法，以及其他信息，比如@Order定义的顺序，@Primary定义的存在多个相同类型时返回哪个bean
      */
-    public BeanDefinition(String name, Class<?> clazz, Constructor<?> constructor, int order, boolean isPrimary
+    public BeanDefinition(String name, Class<?> beanClass, Constructor<?> constructor, int order, boolean isPrimary
             , String initMethodName, String destroyMethodName, Method initMethod, Method destroyMethod) {
         this.name = name;
-        this.clazz = clazz;
+        this.beanClass = beanClass;
         this.constructor = constructor;
         this.order = order;
         this.isPrimary = isPrimary;
@@ -89,10 +91,10 @@ public class BeanDefinition {
      * }
      * ```
      */
-    public BeanDefinition(String name, Class<?> clazz, String factoryName, Method factoryMethod, int order, boolean isPrimary
+    public BeanDefinition(String name, Class<?> beanClass, String factoryName, Method factoryMethod, int order, boolean isPrimary
             , String initMethodName, String destroyMethodName, Method initMethod, Method destroyMethod) {
         this.name = name;
-        this.clazz = clazz;
+        this.beanClass = beanClass;
         this.factoryName = factoryName;
         this.factoryMethod = factoryMethod;
         this.order = order;
@@ -115,6 +117,10 @@ public class BeanDefinition {
         this.destroyMethod = destroyMethod;
     }
 
+    public boolean isConfiguration() {
+        return ClassUtils.findAnnotation(this.beanClass, Configuration.class) != null;
+    }
+
     @Nullable
     public boolean isPrimary() {
         return isPrimary;
@@ -122,5 +128,29 @@ public class BeanDefinition {
 
     public String getName() {
         return name;
+    }
+
+    public Object getInstance() {
+        return instance;
+    }
+
+    public void setInstance(Object instance) {
+        this.instance = instance;
+    }
+
+    public Constructor<?> getConstructor() {
+        return constructor;
+    }
+
+    public String getFactoryName() {
+        return factoryName;
+    }
+
+    public Method getFactoryMethod() {
+        return factoryMethod;
+    }
+
+    public Class<?> getBeanClass() {
+        return beanClass;
     }
 }
