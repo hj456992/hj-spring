@@ -16,7 +16,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class AnnotationConfigApplicationContext {
+public class AnnotationConfigApplicationContext implements ConfigurableApplicationContext {
 
     protected final PropertyResolver propertyResolver;
 
@@ -28,6 +28,8 @@ public class AnnotationConfigApplicationContext {
     protected List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
     public AnnotationConfigApplicationContext(Class<?> configClass, PropertyResolver propertyResolver) {
+        ApplicationContextUtils.setApplicationContext(this);
+
         this.propertyResolver = propertyResolver;
 
         // 扫描获取所有bean的class类型
@@ -460,12 +462,18 @@ public class AnnotationConfigApplicationContext {
         }
     }
 
+
+    @Override
+    public BeanDefinition findBeanDefinition(String name) {
+        return this.beans.get(name);
+    }
+
     /**
      * 根据type查找若干个BeanDefinition，返回0个或者多个
      *
      * type.isAssignableFrom(def.getClass())的意思是，def的类型是否是type或者其子类
      */
-    List<BeanDefinition> findBeanDefinitions(Class<?> type) {
+    public List<BeanDefinition> findBeanDefinitions(Class<?> type) {
         return beans.values().stream().filter(def -> type.isAssignableFrom(def.getClass())).sorted().toList();
     }
 
@@ -491,5 +499,16 @@ public class AnnotationConfigApplicationContext {
 
     private boolean isBeanPostProcessor(BeanDefinition def) {
         return BeanPostProcessor.class.isAssignableFrom(def.getBeanClass());
+    }
+
+    @Override
+    public void close() {
+        for (BeanDefinition def : this.beans.values()) {
+            Object instance = getProxiedInstance(def);
+            callMethod(instance, def.getDestroyMethod(), def.getDestroyMethodName());
+        }
+
+        this.beans.clear();
+        ApplicationContextUtils.setApplicationContext(null);
     }
 }

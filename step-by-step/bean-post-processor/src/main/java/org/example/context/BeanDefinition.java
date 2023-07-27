@@ -161,4 +161,12 @@ public class BeanDefinition {
     public Method getInitMethod() {
         return initMethod;
     }
+
+    public String getDestroyMethodName() {
+        return destroyMethodName;
+    }
+
+    public Method getDestroyMethod() {
+        return destroyMethod;
+    }
 }
